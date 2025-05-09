@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Postgram</title>
+    <style>
+        body {
+            font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial
+            , sans-serif;
+            background-color: #fafafa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        .post-container {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.15);
+            width: 380px;
+            text-align: center;
+            position: relative;
+            margin-left: 250px;
+            margin-right: 200px;
+        }
+        .post-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+        }
+        .profile-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 10px;
+        }
+        .username {
+            font-weight: bold;
+            font-size: 20px;
+        }
+        .post-image {
+            width: 100%;
+            border-radius: 5px;
+        }
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 5px;
+        }
+        .action-btn {
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px;
+            transition: transform 0.2s;
+        }
+        .action-btn:hover {
+            transform: scale(1.1);
+        }
+        .comment-box {
+            display: flex;
+            align-items: center;
+            border-top: 1px solid #ddd;
+            padding: 10px;
+            background: #fff;
+        }
+        .comment-box input {
+            flex: 1;
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            font-size: 14px;
+            border-radius: 20px;
+            outline: none;
+            background-color: #f0f2f5;
+            transition: all 0.2s;
+        }
+        .comment-box input:focus {
+            border-color: #007bff;
+            background-color: white;
+        }
+        .comment-box button {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            color: #007bff;
+            margin-left: 10px;
+            transition: opacity 0.2s;
+        }
+        .comment-box button:hover {
+            opacity: 0.7;
+        }
+        .comments {
+            padding: 10px;
+            font-size: 14px;
+            text-align: left;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .comment {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            align-items: center;
+            background: #f9f9f9;
+            padding: 6px 10px;
+            border-radius: 10px;
+            word-wrap: break-word;
+        }
+        .comment-text {
+            flex: 1;
+            color: #333;
+            font-size: 14px;
+        }
+        .comment-actions {
+            font-size: 14px;
+            cursor: pointer;
+            color: gray;
+            margin-left: 10px;
+            transition: color 0.2s;
+        }
+        .comment-actions:hover {
+            color: red;
+        }
+        .liked {
+            color: red;
+        }
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 220px;
+            height: 100vh;
+            background: white;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            font-family: 'Arial', sans-serif;
+        }
+
+        .sidebar h2 {
+            font-family:Georgia, 'Times New Roman', Times, serif,'cursive';
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .sidebar ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .sidebar li {
+            display: flex;
+            align-items: center;
+            padding: 13px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .sidebar li:hover {
+            background: #f1eaea;
+            border-radius: 10px;
+        }
+
+        .sidebar li span {
+            font-size: 20px;
+            margin-right: 10px;
+        }
+        .chat-sidebar {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 250px;
+            background: white;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
+            border-radius: 10px;
+            padding: 10px;
+            font-family: 'Arial', sans-serif;
+        }
+        .chat-header {
+            font-weight: bold;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .chat-bubble {
+            padding: 8px;
+            margin: 5px 0;
+            background: #f0f2f5;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .chat-bubble:hover {
+            background: #ddd;
+        }
+        body.dark-mode {
+            background-color: #121212;
+            color: white;
+        }
+        .post-container.dark-mode, .sidebar.dark-mode, .chat-sidebar.dark-mode {
+            background-color: #222;
+            color: white;
+            box-shadow: none;
+        }
+
+
+
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>Postgram</h2>
+        <ul>
+            <li><span>🏠</span> Home</li>
+            <li><span>🔍</span> Search</li>
+            <li><span>🧭</span> Explore</li>
+            <li><span>🎥</span> Reels</li>
+            <li><span>💬</span> Messages</li>
+            <li><span>❤️</span> Notifications</li>
+            <li><span>➕</span> Create</li>
+            <li><span>📊</span> Dashboard</li>
+            <li><span>👤</span> Profile</li>
+        </ul>
+        <button id="darkModeToggle">🌙 Dark Mode</button>
+    </div>
+    
+
+<div class="post-container">
+    <div class="post-header">
+        <div style="display: flex; align-items: center;">
+            <img src="pfp.jpg" class="profile-pic" alt="User">
+            <span class="username">AuraGlow</span>
+        </div>
+        <span>⋮</span>
+    </div>
+
+    <img src="avacado.jpg" class="post-image" alt="Post Image">
+    
+    <div class="actions">
+        <span class="action-btn">❤️</span>
+        <span class="action-btn">💬</span>
+        <span class="action-btn">📤</span>
+    </div>
+
+    <div class="comments" id="comments">
+        <!-- Comments will appear here -->
+    </div>
+
+    <div class="comment-box">
+        <input type="text" id="commentInput" placeholder="Add a comment..." onkeydown="handleKeyPress(event)">
+        <button onclick="sendComment()">Post</button>
+    </div>
+</div>
+
+<div class="chat-sidebar">
+    <div class="chat-header">Messages</div>
+    <div class="chat-bubble">Harini: Wanna learn rabinkarp algorithm? 😊</div>
+    <div class="chat-bubble">Tarika: Yeah, why not?</div>
+    <div class="chat-bubble">Dhanuja: But what is rabinkarp?</div>
+    <div class="chat-bubble">Arpitha: Multiple Pattern Matching Algorithm!</div>
+</div>
+ 
+
+<script>
+    function sendComment() {
+        let commentInput = document.getElementById("commentInput");
+        let commentText = commentInput.value.trim();
+        if (commentText === "") return;
+
+        // Send comment to backend for filtering
+        fetch("/censor", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: commentText })
+        })
+        .then(response => response.json())
+        .then(data => {
+            let commentsSection = document.getElementById("comments");
+            let commentElement = document.createElement("div");
+            commentElement.classList.add("comment");
+            commentElement.innerHTML = `
+                <div class="comment-text">${data.censoredText}</div>
+                <span class="comment-actions" onclick="likeComment(this)">❤ Like</span>
+            `;
+            commentsSection.appendChild(commentElement);
+        })
+        .catch(error => console.error("Error:", error));
+
+        commentInput.value = "";
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === "Enter") sendComment();
+    }
+
+    function likeComment(element) {
+        element.classList.toggle("liked");
+        element.innerText = element.classList.contains("liked") ? "❤ Liked" : "❤ Like";
+    }
+
+    document.getElementById("darkModeToggle").addEventListener("click", function () {
+    document.body.classList.toggle("dark-mode");
+    document.querySelector(".post-container").classList.toggle("dark-mode");
+    document.querySelector(".sidebar").classList.toggle("dark-mode");
+    document.querySelector(".chat-sidebar").classList.toggle("dark-mode");
+});
+
+</script>
+
+</body>
+</html>
