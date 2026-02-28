@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rabin-Karp Algorithm Visualizer</title>
+    <meta name="description"
+        content="Interactive step-by-step visualization of the Rabin-Karp string matching algorithm with rolling hash, live stats, and animated comparisons.">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <style>
+        /* ===== RESET & VARIABLES ===== */
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-base: #0A0A0F;
+            --bg-card: #12121A;
+            --bg-elevated: #1A1A26;
+            --bg-hover: #22222F;
+            --bg-tile: #1E1E2E;
+            --border-subtle: rgba(124, 58, 237, 0.12);
+            --border-glow: rgba(124, 58, 237, 0.35);
+            --text-primary: #F0F0F5;
+            --text-secondary: #8888A0;
+            --text-muted: #55556A;
+            --violet: #7C3AED;
+            --pink: #EC4899;
+            --coral: #F97316;
+            --green: #10B981;
+            --red: #EF4444;
+            --amber: #F59E0B;
+            --gradient-main: linear-gradient(135deg, #7C3AED, #EC4899, #F97316);
+            --gradient-subtle: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(236, 72, 153, 0.08));
+            --glow-card: 0 8px 40px rgba(124, 58, 237, 0.08), 0 2px 12px rgba(0, 0, 0, 0.4);
+            --radius: 20px;
+            --radius-sm: 12px;
+            --radius-xs: 8px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-base);
+            color: var(--text-primary);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        /* Ambient glows */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -40%;
+            left: -15%;
+            width: 60%;
+            height: 60%;
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.06) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -25%;
+            right: -15%;
+            width: 55%;
+            height: 55%;
+            background: radial-gradient(circle, rgba(236, 72, 153, 0.04) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(124, 58, 237, 0.3);
+            border-radius: 99px;
+        }
+
+        /* ===== LAYOUT ===== */
+        .app {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 28px 20px 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 28px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .back-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+
+        .back-btn:hover {
+            border-color: var(--border-glow);
+            color: var(--text-primary);
+            background: var(--bg-elevated);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 400;
+            margin-top: 2px;
+        }
+
+        .info-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+            transition: var(--transition);
+        }
+
+        .info-btn:hover {
+            border-color: var(--border-glow);
+            color: var(--violet);
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.15);
+        }
+
+        /* ===== PANELS ===== */
+        .panel {
+            background: rgba(18, 18, 26, 0.7);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: var(--glow-card);
+            transition: var(--transition);
+        }
+
+        .panel:hover {
+            border-color: rgba(124, 58, 237, 0.2);
+        }
+
+        .panel-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-label .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--gradient-main);
+        }
+
+        /* ===== INPUT PANEL ===== */
+        .input-row {
+            display: flex;
+            gap: 14px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .input-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 7px;
+            display: block;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border-subtle);
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .input-field:focus {
+            border-color: var(--violet);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12), 0 0 20px rgba(124, 58, 237, 0.08);
+        }
+
+        .input-field::placeholder {
+            color: var(--text-muted);
+        }
+
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .ctrl-btn {
+            padding: 10px 22px;
+            border-radius: 99px;
+            border: none;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            transition: var(--transition);
+        }
+
+        .ctrl-btn.primary {
+            background: var(--gradient-main);
+            color: #fff;
+            box-shadow: 0 4px 18px rgba(124, 58, 237, 0.3);
+        }
+
+        .ctrl-btn.primary:hover {
+            box-shadow: 0 6px 24px rgba(124, 58, 237, 0.45);
+            transform: translateY(-1px);
+        }
+
+        .ctrl-btn.primary:active {
+            transform: translateY(0);
+        }
+
+        .ctrl-btn.secondary {
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .ctrl-btn.secondary:hover {
+            border-color: var(--border-glow);
+            color: var(--text-primary);
+        }
+
+        .ctrl-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .speed-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+        }
+
+        .speed-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .speed-slider {
+            -webkit-appearance: none;
+            width: 120px;
+            height: 4px;
+            border-radius: 99px;
+            background: var(--bg-hover);
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--gradient-main);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
+        }
+
+        .speed-val {
+            font-size: 12px;
+            color: var(--violet);
+            font-weight: 600;
+            min-width: 18px;
+        }
+
+        /* ===== PROGRESS BAR ===== */
+        .progress-bar-wrapper {
+            height: 4px;
+            border-radius: 99px;
+            background: var(--bg-hover);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            border-radius: 99px;
+            background: var(--gradient-main);
+            transition: width 0.4s ease;
+        }
+
+        /* ===== VISUALIZER ===== */
+        .viz-area {
+            position: relative;
+        }
+
+        .text-row-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .tiles-scroll {
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+
+        .tiles-row {
+            display: inline-flex;
+            gap: 4px;
+            padding: 4px 0;
+            position: relative;
+            min-width: max-content;
+        }
+
+        .tile {
+            width: 44px;
+            height: 50px;
+            border-radius: var(--radius-xs);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+            font-weight: 600;
+            background: var(--bg-tile);
+            border: 1.5px solid rgba(255, 255, 255, 0.04);
+            transition: all 0.3s ease;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .tile .char {
+            line-height: 1;
+        }
+
+        .tile .idx {
+            font-size: 9px;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-top: 3px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Window highlight */
+        .tile.window {
+            border-color: rgba(124, 58, 237, 0.5);
+            background: rgba(124, 58, 237, 0.1);
+            box-shadow: 0 0 16px rgba(124, 58, 237, 0.15);
+        }
+
+        /* States */
+        .tile.mismatch {
+            border-color: var(--red) !important;
+            background: rgba(239, 68, 68, 0.12) !important;
+            box-shadow: 0 0 18px rgba(239, 68, 68, 0.2) !important;
+            animation: shake 0.35s ease;
+        }
+
+        .tile.checking {
+            border-color: var(--amber) !important;
+            background: rgba(245, 158, 11, 0.12) !important;
+            box-shadow: 0 0 18px rgba(245, 158, 11, 0.2) !important;
+        }
+
+        .tile.matched {
+            border-color: var(--green) !important;
+            background: rgba(16, 185, 129, 0.15) !important;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.25) !important;
+        }
+
+        .tile.false-positive {
+            border-color: var(--red) !important;
+            background: rgba(239, 68, 68, 0.08) !important;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-4px);
+            }
+
+            50% {
+                transform: translateX(4px);
+            }
+
+            75% {
+                transform: translateX(-3px);
+            }
+        }
+
+        /* Arrow indicator */
+        .arrow-row {
+            display: inline-flex;
+            gap: 4px;
+            padding: 6px 0 0;
+            min-width: max-content;
+            position: relative;
+        }
+
+        .arrow-slot {
+            width: 44px;
+            height: 18px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .arrow-indicator {
+            font-size: 14px;
+            color: var(--violet);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            filter: drop-shadow(0 0 6px rgba(124, 58, 237, 0.5));
+        }
+
+        /* Pattern row */
+        .pattern-section {
+            margin-top: 16px;
+        }
+
+        .pattern-row {
+            display: inline-flex;
+            gap: 4px;
+            padding: 4px 0;
+            min-width: max-content;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tile.pattern-tile {
+            background: rgba(236, 72, 153, 0.08);
+            border-color: rgba(236, 72, 153, 0.25);
+        }
+
+        /* ===== STATS PANEL ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media(max-width:700px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .stat-col {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .stat-col-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            background: var(--bg-elevated);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .stat-key {
+            font-size: 12.5px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            transition: var(--transition);
+        }
+
+        .stat-value.pulse {
+            animation: pulse 0.3s ease;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.25);
+                color: var(--violet);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .stat-value .match-icon {
+            font-size: 16px;
+        }
+
+        .stat-value.positive {
+            color: var(--green);
+        }
+
+        .stat-value.negative {
+            color: var(--red);
+        }
+
+        .stat-value.warn {
+            color: var(--amber);
+        }
+
+        /* Step log */
+        .step-log {
+            background: var(--bg-base);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            max-height: 140px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            line-height: 1.8;
+            color: var(--text-muted);
+        }
+
+        .step-log .log-entry {
+            animation: slideInLog 0.3s ease;
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .step-log .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-entry .log-step {
+            color: var(--text-muted);
+        }
+
+        .log-entry .log-msg {
+            color: var(--text-secondary);
+        }
+
+        .log-entry.match-log .log-msg {
+            color: var(--green);
+        }
+
+        .log-entry.mismatch-log .log-msg {
+            color: var(--red);
+        }
+
+        .log-entry.check-log .log-msg {
+            color: var(--amber);
+        }
+
+        .log-entry.info-log .log-msg {
+            color: var(--violet);
+        }
+
+        @keyframes slideInLog {
+            from {
+                opacity: 0;
+                transform: translateX(-12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Matches list */
+        .matches-list {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .match-badge {
+            padding: 3px 10px;
+            border-radius: 99px;
+            font-size: 11px;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.12);
+            color: var(--green);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ===== INFO SIDEBAR ===== */
+        .info-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 998;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .info-overlay.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .info-sidebar {
+            position: fixed;
+            top: 0;
+            right: -440px;
+            width: 420px;
+            max-width: 90vw;
+            height: 100vh;
+            z-index: 999;
+            background: rgba(18, 18, 26, 0.92);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-left: 1px solid var(--border-subtle);
+            padding: 32px 28px;
+            overflow-y: auto;
+            transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .info-sidebar.open {
+            right: 0;
+        }
+
+        .info-close {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-xs);
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: var(--transition);
+            margin-bottom: 24px;
+        }
+
+        .info-close:hover {
+            border-color: var(--border-glow);
+            color: var(--text-primary);
+        }
+
+        .info-sidebar h2 {
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .info-sidebar h3 {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 20px 0 10px;
+        }
+
+        .info-sidebar p,
+        .info-sidebar li {
+            font-size: 13.5px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            font-weight: 400;
+        }
+
+        .info-sidebar ul {
+            padding-left: 18px;
+            margin-bottom: 12px;
+        }
+
+        .info-sidebar li {
+            margin-bottom: 6px;
+        }
+
+        .formula-box {
+            background: var(--bg-base);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 16px 20px;
+            margin: 12px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--violet);
+            line-height: 1.8;
+            overflow-x: auto;
+        }
+
+        .complexity-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 13px;
+        }
+
+        .complexity-table th {
+            text-align: left;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .complexity-table td {
+            padding: 8px 12px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .complexity-table td:last-child {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--violet);
+            font-weight: 600;
+        }
+
+        .info-note {
+            background: rgba(249, 115, 22, 0.06);
+            border: 1px solid rgba(249, 115, 22, 0.15);
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            margin-top: 16px;
+            font-size: 12.5px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .info-note strong {
+            color: var(--coral);
+        }
+
+        /* ===== CONFETTI ===== */
+        .confetti-piece {
+            position: fixed;
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            pointer-events: none;
+            z-index: 500;
+            animation: confettiFall 1.2s ease-out forwards;
+        }
+
+        @keyframes confettiFall {
+            0% {
+                opacity: 1;
+                transform: translate(0, 0) rotate(0deg) scale(1);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translate(var(--cx), var(--cy)) rotate(var(--cr)) scale(0.3);
+            }
+        }
+
+        /* ===== STATUS BANNER ===== */
+        .status-banner {
+            text-align: center;
+            padding: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            margin-bottom: 16px;
+            animation: fadeIn 0.3s ease;
+            display: none;
+        }
+
+        .status-banner.complete {
+            display: block;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: var(--green);
+        }
+
+        .status-banner.running {
+            display: block;
+            background: rgba(124, 58, 237, 0.08);
+            border: 1px solid rgba(124, 58, 237, 0.15);
+            color: var(--violet);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-8px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        /* Responsive */
+        @media(max-width:600px) {
+            .app {
+                padding: 16px 12px 32px;
+            }
+
+            .panel {
+                padding: 18px 14px;
+            }
+
+            .input-row {
+                flex-direction: column;
+            }
+
+            .controls-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .speed-group {
+                margin-left: 0;
+                justify-content: center;
+            }
+
+            .header h1 {
+                font-size: 18px;
+            }
+
+            .tile {
+                width: 36px;
+                height: 42px;
+                font-size: 14px;
+            }
+
+            .arrow-slot {
+                width: 36px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app">
+        <!-- HEADER -->
+        <div class="header">
+            <div class="header-left">
+                <div>
+                    <h1>Rabin-Karp Visualizer</h1>
+                    <div class="header-subtitle">Interactive rolling-hash string matching</div>
+                </div>
+            </div>
+            <button class="info-btn" id="infoToggle" title="Algorithm Info">?</button>
+        </div>
+
+        <!-- SECTION 1: INPUT -->
+        <div class="panel" id="inputPanel">
+            <div class="panel-label"><span class="dot"></span> Input</div>
+            <div class="input-row">
+                <div class="input-group">
+                    <label class="input-label" for="textInput">Text</label>
+                    <input class="input-field" type="text" id="textInput" placeholder='e.g. "hello world badword here"'
+                        value="hello world badword here" spellcheck="false">
+                </div>
+                <div class="input-group">
+                    <label class="input-label" for="patternInput">Pattern</label>
+                    <input class="input-field" type="text" id="patternInput" placeholder='e.g. "badword"'
+                        value="badword" spellcheck="false">
+                </div>
+            </div>
+            <div class="controls-row">
+                <button class="ctrl-btn primary" id="playBtn" onclick="handlePlay()">▶ Play</button>
+                <button class="ctrl-btn secondary" id="pauseBtn" onclick="handlePause()" disabled>⏸ Pause</button>
+                <button class="ctrl-btn secondary" id="resetBtn" onclick="handleReset()">↺ Reset</button>
+                <div class="speed-group">
+                    <span class="speed-label">Speed</span>
+                    <input type="range" class="speed-slider" id="speedSlider" min="1" max="5" value="3">
+                    <span class="speed-val" id="speedVal">3</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: VISUALIZER -->
+        <div class="panel" id="vizPanel">
+            <div class="panel-label"><span class="dot"></span> Visualizer</div>
+
+            <div class="progress-bar-wrapper">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+
+            <div id="statusBanner" class="status-banner"></div>
+
+            <div class="viz-area">
+                <!-- Text tiles -->
+                <div class="text-row-label">Text</div>
+                <div class="tiles-scroll" id="textScroll">
+                    <div class="tiles-row" id="textTiles"></div>
+                    <div class="arrow-row" id="arrowRow"></div>
+                </div>
+
+                <!-- Pattern tiles -->
+                <div class="pattern-section">
+                    <div class="text-row-label">Pattern</div>
+                    <div class="tiles-scroll">
+                        <div class="pattern-row" id="patternTiles"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 3: STATS -->
+        <div class="panel" id="statsPanel">
+            <div class="panel-label"><span class="dot"></span> Algorithm Stats</div>
+            <div class="stats-grid">
+                <!-- Left: Hash info -->
+                <div class="stat-col">
+                    <div class="stat-col-title">Live Hash Display</div>
+                    <div class="stat-item">
+                        <span class="stat-key">Window Hash</span>
+                        <span class="stat-value" id="windowHash">—</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-key">Pattern Hash</span>
+                        <span class="stat-value" id="patternHash">—</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-key">Hash Match</span>
+                        <span class="stat-value" id="hashMatch">—</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-key">Verified</span>
+                        <span class="stat-value" id="verified">—</span>
+                    </div>
+                    <div style="margin-top:6px">
+                        <div class="stat-col-title">Matches Found</div>
+                        <div class="matches-list" id="matchesList">
+                            <span style="font-size:12px;color:var(--text-muted)">None yet</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Right: Stats + Log -->
+                <div class="stat-col">
+                    <div class="stat-col-title">Execution</div>
+                    <div class="stat-item">
+                        <span class="stat-key">Position</span>
+                        <span class="stat-value" id="currentPos">—</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-key">Comparisons</span>
+                        <span class="stat-value" id="comparisons">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-key">Step</span>
+                        <span class="stat-value" id="currentStep"
+                            style="font-size:11px; font-family:'Inter',sans-serif; font-weight:500;">Idle</span>
+                    </div>
+                    <div style="margin-top:6px">
+                        <div class="stat-col-title">Step Log</div>
+                        <div class="step-log" id="stepLog">
+                            <div class="log-entry info-log"><span class="log-msg">Ready. Press ▶ Play to start.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- INFO SIDEBAR -->
+    <div class="info-overlay" id="infoOverlay"></div>
+    <div class="info-sidebar" id="infoSidebar">
+        <button class="info-close" id="infoClose">✕</button>
+        <h2>Rabin-Karp Algorithm</h2>
+
+        <h3>What is it?</h3>
+        <ul>
+            <li>A <strong style="color:var(--violet)">string searching algorithm</strong> that uses hashing to find
+                pattern occurrences in text efficiently.</li>
+            <li>Uses a <strong style="color:var(--pink)">rolling hash</strong> — updating the hash in O(1) per step
+                instead of recomputing from scratch.</li>
+            <li>When hashes match, it performs a <strong style="color:var(--coral)">full character-by-character
+                    verification</strong> to confirm (avoiding false positives from hash collisions).</li>
+        </ul>
+
+        <h3>Rolling Hash Formula</h3>
+        <div class="formula-box">
+            <div>hash(s[0..m-1]) = Σ s[i] × BASE^(m-1-i) mod PRIME</div>
+            <br>
+            <div><strong>Rolling update:</strong></div>
+            <div>newHash = (BASE × (oldHash − s[i] × BASE^(m−1))</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ s[i + m]) mod PRIME</div>
+            <br>
+            <div style="color:var(--text-muted)">BASE = 256 &nbsp;|&nbsp; PRIME = 101</div>
+        </div>
+
+        <h3>Time Complexity</h3>
+        <table class="complexity-table">
+            <thead>
+                <tr>
+                    <th>Case</th>
+                    <th>Complexity</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Best Case</td>
+                    <td>O(n + m)</td>
+                </tr>
+                <tr>
+                    <td>Average Case</td>
+                    <td>O(n + m)</td>
+                </tr>
+                <tr>
+                    <td>Worst Case</td>
+                    <td>O(n × m)</td>
+                </tr>
+            </tbody>
+        </table>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">
+            Where <strong>n</strong> = text length,&nbsp; <strong>m</strong> = pattern length.
+        </p>
+
+        <div class="info-note">
+            <strong>⚠ Hash Collisions:</strong> Two different strings can produce the same hash value. That's why
+            Rabin-Karp always <em>verifies</em> a hash match with a full string comparison. A hash match without a
+            string match is called a <strong>false positive</strong> (also called a <em>spurious hit</em>).
+        </div>
+    </div>
+
+    <script>
+        // ===== ALGORITHM CONSTANTS =====
+        const BASE = 256;
+        const PRIME = 101;
+
+        // ===== STATE =====
+        let text = '', pattern = '';
+        let patHash = 0, winHash = 0, h = 1;
+        let pos = 0, n = 0, m = 0;
+        let comparisons = 0, matchPositions = [];
+        let timer = null;
+        let isRunning = false, isPaused = false, isFinished = false;
+        let stepNum = 0;
+        let phase = 'idle'; // 'idle' | 'rolling' | 'checking' | 'done'
+
+        // ===== SPEED =====
+        const speedSlider = document.getElementById('speedSlider');
+        const speedVal = document.getElementById('speedVal');
+        speedSlider.addEventListener('input', () => {
+            speedVal.textContent = speedSlider.value;
+            if (isRunning && !isPaused) {
+                clearInterval(timer);
+                timer = setInterval(step, getDelay());
+            }
+        });
+        function getDelay() {
+            const s = parseInt(speedSlider.value);
+            return [800, 550, 350, 200, 100][s - 1];
+        }
+
+        // ===== INFO SIDEBAR =====
+        const infoToggle = document.getElementById('infoToggle');
+        const infoSidebar = document.getElementById('infoSidebar');
+        const infoOverlay = document.getElementById('infoOverlay');
+        const infoClose = document.getElementById('infoClose');
+
+        infoToggle.addEventListener('click', () => { infoSidebar.classList.add('open'); infoOverlay.classList.add('open'); });
+        infoClose.addEventListener('click', closeInfo);
+        infoOverlay.addEventListener('click', closeInfo);
+        function closeInfo() { infoSidebar.classList.remove('open'); infoOverlay.classList.remove('open'); }
+
+        // ===== BUILD TILES =====
+        function buildTiles() {
+            text = document.getElementById('textInput').value;
+            pattern = document.getElementById('patternInput').value;
+            n = text.length;
+            m = pattern.length;
+
+            // Text tiles
+            const textRow = document.getElementById('textTiles');
+            textRow.innerHTML = '';
+            for (let i = 0; i < n; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.id = 'tt' + i;
+                tile.innerHTML = `<span class="char">${escHtml(text[i])}</span><span class="idx">${i}</span>`;
+                textRow.appendChild(tile);
+            }
+
+            // Arrow row
+            const arrowRow = document.getElementById('arrowRow');
+            arrowRow.innerHTML = '';
+            for (let i = 0; i < n; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'arrow-slot';
+                slot.id = 'as' + i;
+                arrowRow.appendChild(slot);
+            }
+
+            // Pattern tiles
+            const patRow = document.getElementById('patternTiles');
+            patRow.innerHTML = '';
+            for (let i = 0; i < m; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile pattern-tile';
+                tile.id = 'pt' + i;
+                tile.innerHTML = `<span class="char">${escHtml(pattern[i])}</span><span class="idx">${i}</span>`;
+                patRow.appendChild(tile);
+            }
+        }
+
+        function escHtml(c) {
+            if (c === ' ') return '␣';
+            if (c === '<') return '&lt;';
+            if (c === '>') return '&gt;';
+            if (c === '&') return '&amp;';
+            return c;
+        }
+
+        // ===== HASH COMPUTATION =====
+        function computeHash(str, len) {
+            let hv = 0;
+            for (let i = 0; i < len; i++) {
+                hv = (BASE * hv + str.charCodeAt(i)) % PRIME;
+            }
+            return hv;
+        }
+
+        function initAlgo() {
+            pos = 0;
+            comparisons = 0;
+            matchPositions = [];
+            stepNum = 0;
+            phase = 'rolling';
+
+            // Compute h = BASE^(m-1) % PRIME
+            h = 1;
+            for (let i = 0; i < m - 1; i++) {
+                h = (h * BASE) % PRIME;
+            }
+
+            patHash = computeHash(pattern, m);
+            winHash = computeHash(text, m);
+
+            updateStatEl('patternHash', patHash);
+            updateStatEl('windowHash', winHash);
+            updateStatEl('currentPos', 0);
+            updateStatEl('comparisons', 0);
+            updateStatEl('hashMatch', '—');
+            updateStatEl('verified', '—');
+            document.getElementById('currentStep').textContent = 'Initializing...';
+            document.getElementById('matchesList').innerHTML = '<span style="font-size:12px;color:var(--text-muted)">None yet</span>';
+            document.getElementById('stepLog').innerHTML = '';
+
+            addLog('info', 'Algorithm initialized. BASE=256, PRIME=101');
+            addLog('info', `Pattern hash = ${patHash}, h = ${h}`);
+
+            highlightWindow(0);
+            updateProgress();
+
+            // Check initial position
+            phase = 'rolling';
+        }
+
+        // ===== STEP LOGIC =====
+        function step() {
+            if (pos > n - m) {
+                finish();
+                return;
+            }
+
+            stepNum++;
+
+            // Clear previous tile states (except matched)
+            for (let i = 0; i < n; i++) {
+                const t = document.getElementById('tt' + i);
+                if (!t.classList.contains('matched')) {
+                    t.classList.remove('window', 'mismatch', 'checking', 'false-positive');
+                }
+            }
+
+            // Highlight current window
+            highlightWindow(pos);
+
+            // Update window hash display
+            updateStatEl('windowHash', winHash, true);
+            updateStatEl('currentPos', pos, true);
+
+            comparisons++;
+            updateStatEl('comparisons', comparisons);
+
+            // Compare hashes
+            if (winHash === patHash) {
+                // Hash match! Verify
+                updateStatEl('hashMatch', '✅', false, 'positive');
+                setStep('Hash match! Verifying characters...');
+                addLog('check', `[${pos}] Hash match (${winHash} = ${patHash}). Verifying...`);
+
+                setWindowState(pos, 'checking');
+
+                // Full string comparison
+                let match = true;
+                for (let j = 0; j < m; j++) {
+                    if (text[pos + j] !== pattern[j]) {
+                        match = false;
+                        break;
+                    }
+                }
+
+                if (match) {
+                    // Confirmed match!
+                    updateStatEl('verified', '✅ MATCH', false, 'positive');
+                    setStep(`✅ Match confirmed at index ${pos}!`);
+                    addLog('match', `[${pos}] ✅ MATCH confirmed at index ${pos}!`);
+
+                    setWindowState(pos, 'matched');
+                    matchPositions.push(pos);
+                    updateMatchesList();
+                    spawnConfetti(pos);
+                } else {
+                    // False positive
+                    updateStatEl('verified', '❌ FALSE POSITIVE', false, 'negative');
+                    setStep(`⚠ False positive at index ${pos}`);
+                    addLog('mismatch', `[${pos}] ❌ FALSE POSITIVE — hash collision!`);
+
+                    setWindowState(pos, 'false-positive');
+                    setTimeout(() => setWindowState(pos, 'mismatch'), 150);
+                }
+            } else {
+                // Hash mismatch
+                updateStatEl('hashMatch', '❌', false, 'negative');
+                updateStatEl('verified', '—');
+                setStep(`Rolling hash forward... (pos ${pos})`);
+
+                setWindowState(pos, 'mismatch');
+
+                if (stepNum <= 3 || stepNum % 3 === 0) {
+                    addLog('mismatch', `[${pos}] Hash mismatch (${winHash} ≠ ${patHash}). Sliding...`);
+                }
+            }
+
+            // Move pattern tiles
+            const patRow = document.getElementById('patternTiles');
+            patRow.style.transform = `translateX(${pos * 48}px)`;
+
+            updateProgress();
+
+            // Rolling hash for next position
+            if (pos < n - m) {
+                winHash = (BASE * (winHash - text.charCodeAt(pos) * h) + text.charCodeAt(pos + m)) % PRIME;
+                if (winHash < 0) winHash += PRIME;
+            }
+
+            pos++;
+
+            if (pos > n - m) {
+                setTimeout(finish, getDelay());
+            }
+        }
+
+        function highlightWindow(p) {
+            for (let j = p; j < p + m && j < n; j++) {
+                const t = document.getElementById('tt' + j);
+                if (!t.classList.contains('matched')) {
+                    t.classList.add('window');
+                }
+            }
+
+            // Update arrow
+            for (let i = 0; i < n; i++) {
+                document.getElementById('as' + i).innerHTML = '';
+            }
+            const arrowSlot = document.getElementById('as' + p);
+            if (arrowSlot) {
+                arrowSlot.innerHTML = '<span class="arrow-indicator">▲</span>';
+            }
+        }
+
+        function setWindowState(p, state) {
+            for (let j = p; j < p + m && j < n; j++) {
+                const t = document.getElementById('tt' + j);
+                t.classList.remove('window', 'mismatch', 'checking', 'false-positive');
+                t.classList.add(state);
+            }
+        }
+
+        function finish() {
+            isRunning = false;
+            isPaused = false;
+            isFinished = true;
+            clearInterval(timer);
+            timer = null;
+
+            document.getElementById('playBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = true;
+
+            const banner = document.getElementById('statusBanner');
+            banner.className = 'status-banner complete';
+            banner.textContent = `✅ Algorithm complete — ${matchPositions.length} match${matchPositions.length !== 1 ? 'es' : ''} found in ${comparisons} comparisons`;
+
+            setStep('Algorithm complete!');
+            addLog('match', `Done! Found ${matchPositions.length} match(es) at positions: [${matchPositions.join(', ')}]`);
+
+            updateProgress(true);
+        }
+
+        // ===== UI HELPERS =====
+        function updateStatEl(id, value, pulse, cls) {
+            const el = document.getElementById(id);
+            el.textContent = value;
+            if (pulse) {
+                el.classList.remove('pulse');
+                void el.offsetWidth;
+                el.classList.add('pulse');
+            }
+            el.className = 'stat-value' + (cls ? ' ' + cls : '') + (pulse ? ' pulse' : '');
+        }
+
+        function setStep(msg) {
+            document.getElementById('currentStep').textContent = msg;
+        }
+
+        function addLog(type, msg) {
+            const log = document.getElementById('stepLog');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}-log`;
+            entry.innerHTML = `<span class="log-msg">${msg}</span>`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+
+            // Keep last 30 entries
+            while (log.children.length > 30) {
+                log.removeChild(log.firstChild);
+            }
+        }
+
+        function updateMatchesList() {
+            const list = document.getElementById('matchesList');
+            list.innerHTML = '';
+            matchPositions.forEach(p => {
+                const badge = document.createElement('span');
+                badge.className = 'match-badge';
+                badge.textContent = `Index ${p}`;
+                list.appendChild(badge);
+            });
+        }
+
+        function updateProgress(done) {
+            const bar = document.getElementById('progressBar');
+            if (done) { bar.style.width = '100%'; return; }
+            const pct = n - m > 0 ? (pos / (n - m)) * 100 : 0;
+            bar.style.width = Math.min(pct, 100) + '%';
+        }
+
+        // ===== CONFETTI =====
+        function spawnConfetti(p) {
+            const tile = document.getElementById('tt' + p);
+            if (!tile) return;
+            const rect = tile.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top;
+            const colors = ['#7C3AED', '#EC4899', '#F97316', '#10B981', '#8B5CF6', '#F472B6', '#34D399'];
+
+            for (let i = 0; i < 24; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                piece.style.left = cx + 'px';
+                piece.style.top = cy + 'px';
+                piece.style.background = colors[i % colors.length];
+                piece.style.setProperty('--cx', (Math.random() - 0.5) * 200 + 'px');
+                piece.style.setProperty('--cy', -(Math.random() * 160 + 40) + 'px');
+                piece.style.setProperty('--cr', (Math.random() * 720 - 360) + 'deg');
+                piece.style.animationDelay = (Math.random() * 0.15) + 's';
+                document.body.appendChild(piece);
+                setTimeout(() => piece.remove(), 1500);
+            }
+        }
+
+        // ===== CONTROLS =====
+        function handlePlay() {
+            if (isFinished) handleReset();
+
+            const t = document.getElementById('textInput').value;
+            const p = document.getElementById('patternInput').value;
+
+            if (!t || !p) { alert('Please enter both text and pattern.'); return; }
+            if (p.length > t.length) { alert('Pattern must be shorter than text.'); return; }
+
+            if (!isRunning) {
+                // Fresh start
+                buildTiles();
+                initAlgo();
+                isRunning = true;
+                isPaused = false;
+                isFinished = false;
+
+                document.getElementById('statusBanner').className = 'status-banner running';
+                document.getElementById('statusBanner').textContent = '🔄 Algorithm running...';
+
+                document.getElementById('playBtn').disabled = true;
+                document.getElementById('pauseBtn').disabled = false;
+                document.getElementById('textInput').disabled = true;
+                document.getElementById('patternInput').disabled = true;
+
+                timer = setInterval(step, getDelay());
+            } else if (isPaused) {
+                // Resume
+                isPaused = false;
+                document.getElementById('playBtn').disabled = true;
+                document.getElementById('pauseBtn').disabled = false;
+
+                document.getElementById('statusBanner').className = 'status-banner running';
+                document.getElementById('statusBanner').textContent = '🔄 Algorithm running...';
+
+                timer = setInterval(step, getDelay());
+            }
+        }
+
+        function handlePause() {
+            if (isRunning && !isPaused) {
+                isPaused = true;
+                clearInterval(timer);
+                timer = null;
+
+                document.getElementById('playBtn').disabled = false;
+                document.getElementById('playBtn').innerHTML = '▶ Resume';
+                document.getElementById('pauseBtn').disabled = true;
+
+                document.getElementById('statusBanner').className = 'status-banner running';
+                document.getElementById('statusBanner').textContent = '⏸ Paused';
+
+                addLog('info', 'Paused at position ' + (pos - 1));
+            }
+        }
+
+        function handleReset() {
+            clearInterval(timer);
+            timer = null;
+            isRunning = false;
+            isPaused = false;
+            isFinished = false;
+            pos = 0;
+
+            document.getElementById('playBtn').disabled = false;
+            document.getElementById('playBtn').innerHTML = '▶ Play';
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('textInput').disabled = false;
+            document.getElementById('patternInput').disabled = false;
+
+            document.getElementById('statusBanner').className = 'status-banner';
+            document.getElementById('progressBar').style.width = '0%';
+
+            updateStatEl('windowHash', '—');
+            updateStatEl('patternHash', '—');
+            updateStatEl('hashMatch', '—');
+            updateStatEl('verified', '—');
+            updateStatEl('currentPos', '—');
+            updateStatEl('comparisons', '0');
+            document.getElementById('currentStep').textContent = 'Idle';
+            document.getElementById('matchesList').innerHTML = '<span style="font-size:12px;color:var(--text-muted)">None yet</span>';
+            document.getElementById('stepLog').innerHTML = '<div class="log-entry info-log"><span class="log-msg">Ready. Press ▶ Play to start.</span></div>';
+
+            buildTiles();
+            const patRow = document.getElementById('patternTiles');
+            patRow.style.transform = 'translateX(0px)';
+        }
+
+        // ===== INIT =====
+        buildTiles();
+    </script>
+
+</body>
+
+</html>
