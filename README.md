@@ -168,15 +168,6 @@ Pattern: "badword"
 
 ---
 
-## 👥 Team
-
-- **Tarika**
-- **Harini**
-- **Dhanuja**
-- **Arpitha**
-
----
-
 ## 📚 References
 
 1. Karp, R.M.; Rabin, M.O. (1987). *"Efficient randomized pattern-matching algorithms"*. IBM Journal of Research and Development.
